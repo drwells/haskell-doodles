@@ -29,11 +29,15 @@ attachApplications (flagValue, inputArgs) = case flagValue of
 -- if the flag is for help, echo the help message.
   Help        -> ["echo " ++ "'" ++ usageMessage ++ "'"]
 -- function to prefix files with the appropriate application.
-  where prependApplication app files = map ((app ++ " ") ++) files
+  where prependApplication app files = map ((app ++ " ") ++) (map addBackslash files)
         suffix = reverse . takeWhile (/='.') . reverse
 
+addBackslash :: String -> String
+addBackslash = foldl1 (++) . map test
+                 where test = \ t -> if elem t " ()[]" then "\\" ++ [t] else [t]
+
 -- Given some list of command line arguments, return either an error or a tuple
--- of the correct action and arguements.
+-- of the correct action and arguments.
 findFlag :: [String] -> Either String (FlagOption, [String])
 findFlag commandLineArgs
   -- if the first arguement is a flag, parse it appropriately.
@@ -41,7 +45,7 @@ findFlag commandLineArgs
     "-a" -> Right (Application, tail commandLineArgs)
     "-e" -> Right (Editor, tail commandLineArgs)
     "-H" -> Right (Help, tail commandLineArgs)
-  | head firstArg == '-' = error "undefined flag"
+  | head firstArg == '-' = Left "undefined flag"
   | otherwise = Right (Default, commandLineArgs)
     where firstArg = head commandLineArgs
 
