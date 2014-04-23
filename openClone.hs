@@ -6,7 +6,7 @@ import System.Posix.Env (getEnv)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Map as Map (Map, lookup, fromList)
 
-data FlagOption = Default | Application | Editor | Help
+data FlagOption = Default | Application | Editor | Help deriving (Eq, Show)
 
 -- work with all the input values (except flags) and return a list of strings
 -- to pass to /bin/sh
@@ -23,13 +23,15 @@ attachApplications (flagValue, inputArgs) = case flagValue of
     Just app  -> prependApplication app inputArgs
     Nothing   -> error "application not defined"
 -- if the flag is for an application, that application is the first argument.
-  Application -> prependApplication (head inputArgs ++ " ") (" " : tail inputArgs)
+  Application -> prependApplication (head inputArgs) (tail inputArgs)
 -- if the flag is for the editor, launch it with the editor variable.
   Editor      -> [editorName ++ " " ++ (unwords inputArgs)]
 -- if the flag is for help, echo the help message.
   Help        -> ["echo " ++ "'" ++ usageMessage ++ "'"]
 -- function to prefix files with the appropriate application.
-  where prependApplication app files = map ((app ++ " ") ++) (map addBackslash files)
+  where prependApplication app files
+          | length files == 0 = [app]
+          | otherwise = map ((app ++ " ") ++) (map addBackslash files)
         suffix = reverse . takeWhile (/='.') . reverse
 
 addBackslash :: String -> String
